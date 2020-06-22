@@ -2,9 +2,7 @@
 .model small
 .stack 100h
 .data
-    ;start_message db 'P', 05h, 'R', 05h, 'E', 05h, 'S', 05h, 'S', 05h
-    ;db ' ', 05h, 'K', 05h, 'E', 05h, 'Y', 05h, ' '
-    ;db 05h, 'T', 05h, 'O', 05h, ' ', 05h, 'S', 05h, 'T', 05h, 'A', 05h, 'R', 05h, 'T', 05h
+    VIDEOR db 0,0
     title_message db "PRESS ANY KEY TO START", 0
     empty_title db "                       ", 0
     gameover_message db "GAME OVER", 0
@@ -52,6 +50,10 @@
  
 init_screen_mode proc
     pusha
+    mov ah, 0fh
+    int 10h
+    mov VIDEOR, al
+    
     xor ax, ax
     mov ah,0h
     mov al,03h
@@ -230,7 +232,7 @@ show_gameover proc
         call sleep
         mov si, offset empty_gameover
         mov di, 996
-        call buffer_write_string
+       call buffer_write_string
         call buffer_render
         call check_key_pressed
         cmp dx, TRUE
@@ -246,7 +248,6 @@ show_gameover proc
             jmp _wait_for_key_gameover
     _exit_show_gameover:
         popa
-        jmp far ptr terminate
         ret
 show_gameover endp
  
@@ -307,9 +308,9 @@ update_car_pos proc
     int 16h
     cmp al, 27 ; ESC
     je _exit_func
-    cmp al, 87 ; W
+    cmp al, 119 ; W
     je up_car
-    cmp al, 83 ; S
+    cmp al, 115 ; S
     je down_car
     cmp ah, 4bh; left
     je left_car
@@ -349,50 +350,7 @@ update_car_pos proc
         ret
 update_car_pos endp
  
-;keyboard_handler proc far
-;   pushf                                ; Сохраняем регистры флагов
-;    call cs:old_handler                  ; Вызываем старый обработчик
-;        
-;    pusha                                ; Сохраняем регистры    
-;    push ds                              
-;    push es
-;    push cs
-;    pop ds
-;    
-;   call  cs:update_car_pos
-;   call  cs:draw_car
-;    
-;    pop es
-;    pop ds
-;    popa
-;   popf    
-;    iret    
-;keyboard_handler endp
-;
-;install_handler proc
-;   pusha
-;   push es
-;    cli
-;    mov ah, 35h                       ; Функция получения адреса обработчика прерывания
-;   mov al, 09h                       ; прерывание, обработчик которого необходимо получить (09 - прерывание от клавиатуры)
-;   int 21h
-;  
-;                                    ; Сохраняем старый обработчик
-;   mov word ptr old_handler, bx     ; смещение
-;   mov word ptr old_handler + 2, es ; сегмент
-;  
-;   push ds
-;   pop es
-;  
-;   mov ah, 25h                       ; Функция замены обработчика прерывания
-;   mov al, 09h                       ; Прерывание, обработчк которого будет заменен
-;   mov dx, offset keyboard_handler        ; Загружаем в dx смещение нового обработчика прерывания, который будет установлен на место старого обработчика
-;   int 21h
-;    sti
-;   pop es
-;   popa
-;   ret
-;install_handler endp
+
  
 create_obstacle proc
     pusha
@@ -590,7 +548,7 @@ increase_speed proc
     xor ax, ax
     mov al, byte ptr[object_counter]
     xor bx, bx
-    mov bl, 2
+    mov bl, 3
     div bl
     cmp ah, 0
     je decrease_time_interval
@@ -632,9 +590,7 @@ increase_difficulty proc
      pusha
      mov al, byte ptr[time_interval]
      cmp al,2
-     jb sub_one
-     jmp _exit_increase_difficulty
-     sub_one:
+     jb _exit_increase_difficulty
          mov bl, 1
          sub al,bl  
          mov byte ptr[time_interval], al
@@ -646,11 +602,7 @@ increase_difficulty endp
 decrease_difficulty proc
      pusha
      mov al, byte ptr[time_interval]
-     cmp al,2
-     jb add_two
-     jmp _exit_decrease_difficulty
-     add_two:
-         mov bl, 2
+         mov bl, 5
          add al,bl  
          mov byte ptr[time_interval], al
      _exit_decrease_difficulty:
@@ -733,7 +685,8 @@ _exit:
 call buffer_clear
 call buffer_render
 call show_gameover
-terminate:
-mov ah, 4Ch
+mov ax, word ptr VIDEOR
+int 10h
+mov ah, 4ch
 int 21h
 end _start
